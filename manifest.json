@@ -2,13 +2,13 @@
   "background_color": "#0b0f19",
   "dir": "ltr",
   "display": "fullscreen",
-  "name": "MS Vita",
+  "name": "MS Vit-2a",
   "orientation": "any",
-  "scope": "/Ms-vita/",
-  "short_name": "MS Vita",
-  "start_url": "/Ms-vita/",
+  "scope": "/Ms-vita-2/",
+  "short_name": "MS Vita-2",
+  "start_url": "/Ms-vita-2/",
   "theme_color": "#06b6d4",
-  "id": "Ms-vita",
+  "id": "Ms-vita-2",
   "lang": "nl",
   "description": "Jouw persoonlijke MS dashboard",
   "categories": [
@@ -17,13 +17,13 @@
   ],
   "icons": [
     {
-      "src": "/Ms-vita/icon-192.png",
+      "src": "/Ms-vita-2/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/Ms-vita/icon-512.png",
+      "src": "/Ms-vita-2/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -31,7 +31,7 @@
   ],
   "screenshots": [
     {
-      "src": "/Ms-vita/screenshot1.png",
+      "src": "/Ms-vita-2/screenshot1.png",
       "sizes": "597x949",
       "type": "image/png",
       "form_factor": "narrow",
