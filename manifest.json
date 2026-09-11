@@ -1,9 +1,11 @@
 {
   "name": "Ms Vita",
   "short_name": "Ms Vita",
+  "description": "Jouw persoonlijke MS dashboard en voortgang",
   "start_url": "/Ms-vita-2/",
   "scope": "/Ms-vita-2/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0b0f19",
   "theme_color": "#06b6d4",
   "icons": [
@@ -18,6 +20,15 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/Ms-vita-2/screenshot1.png",
+      "sizes": "567x949",
+      "type": "image/png",
+      "form_factor": "wide"
+     "form_factor": "narrow"
     }
   ]
 }
