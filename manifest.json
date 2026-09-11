@@ -5,7 +5,6 @@
   "start_url": "/Ms-vita-2/",
   "scope": "/Ms-vita-2/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0b0f19",
   "theme_color": "#06b6d4",
   "icons": [
@@ -25,10 +24,9 @@
   "screenshots": [
     {
       "src": "/Ms-vita-2/screenshot1.png",
-      "sizes": "567x949",
+      "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide"
-     "form_factor": "narrow"
     }
   ]
 }
