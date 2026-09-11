@@ -6,6 +6,8 @@
   <title>MS Vita - Dashboard</title>
   <link rel="manifest" href="/Ms-vita-2/manifest.json">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Bibliotheek voor het genereren van de artsen-PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root {
       --bg-color: #0b0f19;
@@ -16,7 +18,6 @@
       --text-muted: #94a3b8;
     }
 
-    /* Automatische overname van de telefoonmodus (Light / Dark mode) */
     @media (prefers-color-scheme: light) {
       :root {
         --bg-color: #f1f5f9;
@@ -92,7 +93,6 @@
       margin-bottom: 16px;
     }
 
-    /* Specifieke styling voor de keuzelijst met geforceerde zwarte tekstkleur */
     select {
       background: #ffffff !important;
       color: #000000 !important;
@@ -124,7 +124,6 @@
       outline: none;
     }
 
-    /* Bottom Nav Bar */
     .nav-bar {
       position: fixed;
       bottom: 0;
@@ -228,8 +227,9 @@
       </div>
     </div>
     
-    <div style="display: flex; justify-content: flex-end;">
-      <button onclick="openLocationSettings()" style="width: auto; padding: 4px 8px; font-size: 0.75rem; margin-top: 0; background: var(--card-bg); border: 1px solid var(--card-border);">Locatie wijzigen</button>
+    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+      <button onclick="requestGpsLocation()" style="width: auto; padding: 4px 8px; font-size: 0.75rem; margin-top: 0; background: var(--card-bg); border: 1px solid var(--card-border);">📍 Gebruik GPS</button>
+      <button onclick="openLocationSettings()" style="width: auto; padding: 4px 8px; font-size: 0.75rem; margin-top: 0; background: var(--card-bg); border: 1px solid var(--card-border);">Stad wijzigen</button>
     </div>
   </div>
 
@@ -393,7 +393,7 @@
         <input type="time" id="quickAlarmTime">
         <label>Label / Omschrijving</label>
         <input type="text" id="quickAlarmLabel" placeholder="Bijv. Ochtendmedicatie of Fysiotherapie">
-        <button onclick="openNativeAlarmApp()">Open Officiële Wekker App</button>
+        <button onclick="openNativeAlarmApp()">Wekker</button>
       </div>
     </div>
   </div>
@@ -401,12 +401,76 @@
   <!-- TAB 6: Instellingen -->
   <div id="tab-instellingen" class="tab-content">
     <div class="card">
-      <h2>Instellingen</h2>
+      <h2>Instellingen & Export</h2>
       <label>Jouw Naam</label>
       <input type="text" id="settingsUserName" placeholder="Je naam">
-      <label style="margin-top: 10px; display: block;">Locatie (Weer)</label>
+      <label style="margin-top: 10px; display: block;">Stad / Locatie (Weer)</label>
       <input type="text" id="settingsLocation" placeholder="Bijv. Leuven">
       <button onclick="saveSettings()">Instellingen Opslaan</button>
+
+      <div style="margin-top: 30px; border-top: 1px solid var(--card-border); padding-top: 20px;">
+        <h3 style="font-size: 1.1rem; color: var(--accent-color); margin-top: 0;">🩺 Rapport voor de Arts</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Exporteer al je opgeslagen vermoeidheidsmetingen, mobiliteitsscores, diagrammen, medicatie en dagboeknotities direct als een net overzichtelijk PDF-bestand.</p>
+        <button onclick="exportDoctorReport()" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">Exporteer Artsen-Rapport (PDF)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONZICHTBAAR CONTAINER VOOR HET GENEREREN VAN DE PDF -->
+  <div id="doctorExportContainer" style="display: none; background: #ffffff; color: #000000; padding: 30px; font-family: Arial, sans-serif; width: 700px; box-sizing: border-box;">
+    <div style="border-bottom: 3px solid #06b6d4; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+      <div>
+        <h1 style="margin: 0; color: #0f172a; font-size: 24px;">MS Vita - Medisch Rapport</h1>
+        <p style="margin: 5px 0 0 0; color: #475569; font-size: 14px;">Overzicht van klachten, dagboek en therapieën voor de behandelend arts</p>
+      </div>
+      <div style="text-align: right; font-size: 13px; color: #475569;">
+        <strong>Patiënt:</strong> <span id="pdfPatientName">--</span><br>
+        <strong>Gegenereerd op:</strong> <span id="pdfExportDate">--</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 25px;">
+      <h3 style="color: #0891b2; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-size: 16px;">1. Klachten Historie (Vermoeidheid & Mobiliteit / Schaal 1-10)</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
+        <thead>
+          <tr style="background: #f1f5f9; text-align: left;">
+            <th style="padding: 8px; border: 1px solid #cbd5e1;">Datum</th>
+            <th style="padding: 8px; border: 1px solid #cbd5e1;">Vermoeidheid (1-10)</th>
+            <th style="padding: 8px; border: 1px solid #cbd5e1;">Mobiliteit / Spierzwakte (1-10)</th>
+          </tr>
+        </thead>
+        <tbody id="pdfSymptomsTableBody">
+          <!-- Wordt dynamisch gevuld -->
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-bottom: 25px;">
+      <h3 style="color: #0891b2; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-size: 16px;">2. Visueel Overzicht / Diagrammen</h3>
+      <div style="display: flex; gap: 20px; justify-content: space-around; margin-top: 15px;">
+        <div style="text-align: center; width: 45%;">
+          <p style="font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #b45309;">Vermoeidheid</p>
+          <img id="pdfFatigueChartImg" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px;" />
+        </div>
+        <div style="text-align: center; width: 45%;">
+          <p style="font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #0891b2;">Mobiliteit</p>
+          <img id="pdfMobilityChartImg" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px;" />
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 25px;">
+      <h3 style="color: #0891b2; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-size: 16px;">3. Actieve Medicatie & Therapieën</h3>
+      <ul id="pdfMedList" style="margin: 10px 0; padding-left: 20px; font-size: 13px; color: #1e293b;">
+        <!-- Wordt dynamisch gevuld -->
+      </ul>
+    </div>
+
+    <div>
+      <h3 style="color: #0891b2; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-size: 16px;">4. Dagboek & Notities</h3>
+      <div id="pdfNotesContent" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font-size: 13px; white-space: pre-wrap; color: #1e293b; min-height: 80px;">
+        Geen notities ingevoerd.
+      </div>
     </div>
   </div>
 
@@ -445,6 +509,10 @@
 
       document.getElementById('tab-' + tabId).classList.add('active');
       btnElement.classList.add('active');
+      
+      if (tabId === 'klachten') {
+        setTimeout(renderPieCharts, 50);
+      }
     }
 
     function checkUserName() {
@@ -496,23 +564,42 @@
     }
 
     async function fetchWeatherAndTheme() {
-      let savedLocation = localStorage.getItem('ms_vita_location') || "Leuven";
       const descEl = document.getElementById('weatherDescription');
       const emojiEl = document.getElementById('weatherEmoji');
+      
+      // Kijk of er opgeslagen coördinaten zijn via GPS, anders val terug op opgeslagen stad of standaard 'Leuven'
+      let savedLat = localStorage.getItem('ms_vita_lat');
+      let savedLon = localStorage.getItem('ms_vita_lon');
+      let savedLocation = localStorage.getItem('ms_vita_location') || "Leuven";
 
       try {
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(savedLocation)}&count=1`);
-        const geoData = await geoRes.json();
-        
-        if (!geoData.results || geoData.results.length === 0) return;
+        let latitude, longitude, locationName;
 
-        const { latitude, longitude, name, country } = geoData.results[0];
+        if (savedLat && savedLon && !localStorage.getItem('ms_vita_use_city_override')) {
+          latitude = savedLat;
+          longitude = savedLon;
+          locationName = savedLocation;
+        } else {
+          // Geocoding via stadnaam
+          const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(savedLocation)}&count=1`);
+          const geoData = await geoRes.json();
+          
+          if (!geoData.results || geoData.results.length === 0) {
+            descEl.innerText = `${savedLocation}: Locatie niet gevonden`;
+            return;
+          }
+
+          latitude = geoData.results[0].latitude;
+          longitude = geoData.results[0].longitude;
+          locationName = geoData.results[0].name;
+        }
+
         const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=Europe%2FBrussels`);
         const data = await weatherRes.json();
         const temp = data.current.temperature_2m;
         const code = data.current.weather_code;
 
-        let weatherText = `${name} (${country || ''}): ${temp}°C`;
+        let weatherText = `${locationName}: ${temp}°C`;
         let emoji = "⛅";
 
         if (code === 0) { weatherText += ", Heldere hemel"; emoji = "☀️"; }
@@ -527,10 +614,47 @@
       }
     }
 
+    function requestGpsLocation() {
+      const descEl = document.getElementById('weatherDescription');
+      if (!navigator.geolocation) {
+        alert("Geolocatie wordt niet ondersteund door jouw browser.");
+        return;
+      }
+
+      descEl.innerText = "GPS-locatie opvragen...";
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          
+          localStorage.setItem('ms_vita_lat', lat);
+          localStorage.setItem('ms_vita_lon', lon);
+          localStorage.removeItem('ms_vita_use_city_override');
+
+          // Probeer optioneel de plaatsnaam te achterhalen via reverse geocoding of coördinaten
+          try {
+            const revRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=Leuven&count=1`); // Fallback naam als reverse niet direct lukt
+            localStorage.setItem('ms_vita_location', "Huidige GPS-locatie");
+          } catch(err) {}
+
+          fetchWeatherAndTheme();
+        },
+        (error) => {
+          alert("Kon GPS-locatie niet ophalen. Controleer je locatietoestemmingen.");
+          fetchWeatherAndTheme();
+        },
+        { timeout: 10000 }
+      );
+    }
+
     function openLocationSettings() {
-      const newLoc = prompt("Geef je locatie (stad/gemeente) in:", localStorage.getItem('ms_vita_location') || "Leuven");
+      const newLoc = prompt("Geef je stad of gemeente in:", localStorage.getItem('ms_vita_location') || "Leuven");
       if (newLoc && newLoc.trim() !== "") {
         localStorage.setItem('ms_vita_location', newLoc.trim());
+        localStorage.setItem('ms_vita_use_city_override', 'true');
+        localStorage.removeItem('ms_vita_lat');
+        localStorage.removeItem('ms_vita_lon');
         fetchWeatherAndTheme();
       }
     }
@@ -573,7 +697,9 @@
       let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
       symptoms.push({ date, fatigue: selectedFatigue, mobility: selectedMobility });
       localStorage.setItem('ms_vita_symptoms', JSON.stringify(symptoms));
+      
       activeHighlightIndex = null;
+      
       updateDynamicGreeting();
       renderPieCharts();
       loadSymptomsHistory();
@@ -699,7 +825,12 @@
       const nameVal = document.getElementById('settingsUserName').value.trim();
       const locVal = document.getElementById('settingsLocation').value.trim();
       if (nameVal) localStorage.setItem('ms_vita_username', nameVal);
-      if (locVal) localStorage.setItem('ms_vita_location', locVal);
+      if (locVal) {
+        localStorage.setItem('ms_vita_location', locVal);
+        localStorage.setItem('ms_vita_use_city_override', 'true');
+        localStorage.removeItem('ms_vita_lat');
+        localStorage.removeItem('ms_vita_lon');
+      }
       updateDynamicGreeting();
       fetchWeatherAndTheme();
       alert('Instellingen opgeslagen!');
@@ -708,13 +839,13 @@
     function renderPieCharts() {
       let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
       
-      let labels = symptoms.map(s => s.date);
+      let labels = symptoms.map(s => `${s.date} (${s.fatigue}/10)`);
       let fatigueData = symptoms.map(s => s.fatigue);
       let mobilityData = symptoms.map(s => s.mobility);
 
       if (activeHighlightIndex !== null && symptoms[activeHighlightIndex]) {
         const item = symptoms[activeHighlightIndex];
-        labels = [item.date + ' (Geselecteerd)'];
+        labels = [`${item.date} [Geselecteerd]`];
         fatigueData = [item.fatigue];
         mobilityData = [item.mobility];
       }
@@ -734,7 +865,11 @@
         plugins: { 
           legend: { 
             position: 'bottom', 
-            labels: { color: textColor, boxWidth: 12 } 
+            labels: { 
+              color: textColor, 
+              boxWidth: 12,
+              font: { size: 11 }
+            } 
           } 
         }
       };
@@ -745,7 +880,7 @@
           labels: labels.length ? labels : ['Geen data'],
           datasets: [{
             data: fatigueData.length ? fatigueData : [1],
-            backgroundColor: ['#f59e0b', '#d97706', '#fbbf24', '#b45309', '#fcd34d', '#78350f'],
+            backgroundColor: ['#f59e0b', '#d97706', '#fbbf24', '#b45309', '#fcd34d', '#78350f', '#f97316'],
             borderColor: 'transparent',
             borderWidth: 1
           }]
@@ -759,12 +894,71 @@
           labels: labels.length ? labels : ['Geen data'],
           datasets: [{
             data: mobilityData.length ? mobilityData : [1],
-            backgroundColor: ['#06b6d4', '#0891b2', '#22d3ee', '#155e75', '#67e3f0', '#0e7490'],
+            backgroundColor: ['#06b6d4', '#0891b2', '#22d3ee', '#155e75', '#67e3f0', '#0e7490', '#38bdf8'],
             borderColor: 'transparent',
             borderWidth: 1
           }]
         },
         options: commonOptions
+      });
+    }
+
+    function exportDoctorReport() {
+      const patientName = localStorage.getItem('ms_vita_username') || 'Patiënt';
+      document.getElementById('pdfPatientName').innerText = patientName;
+      document.getElementById('pdfExportDate').innerText = new Date().toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' });
+
+      const symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
+      const tbody = document.getElementById('pdfSymptomsTableBody');
+      if (symptoms.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="padding: 10px; border: 1px solid #cbd5e1; text-align: center; color: #64748b;">Geen metingen geregistreerd.</td></tr>`;
+      } else {
+        tbody.innerHTML = symptoms.map(s => `
+          <tr>
+            <td style="padding: 8px; border: 1px solid #cbd5e1;">${s.date}</td>
+            <td style="padding: 8px; border: 1px solid #cbd5e1; font-weight: bold; color: #b45309;">${s.fatigue} / 10</td>
+            <td style="padding: 8px; border: 1px solid #cbd5e1; font-weight: bold; color: #0891b2;">${s.mobility} / 10</td>
+          </tr>
+        `).join('');
+      }
+
+      const fatigueCanvas = document.getElementById('fatiguePieChart');
+      const mobilityCanvas = document.getElementById('mobilityPieChart');
+      if (fatigueCanvas) {
+        document.getElementById('pdfFatigueChartImg').src = fatigueCanvas.toDataURL('image/png');
+      }
+      if (mobilityCanvas) {
+        document.getElementById('pdfMobilityChartImg').src = mobilityCanvas.toDataURL('image/png');
+      }
+
+      const meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '[]');
+      const medListEl = document.getElementById('pdfMedList');
+      if (meds.length === 0) {
+        medListEl.innerHTML = `<li>Geen medicatie of therapieën opgegeven.</li>`;
+      } else {
+        medListEl.innerHTML = meds.map(m => `<li>${m}</li>`).join('');
+      }
+
+      const notes = localStorage.getItem('ms_vita_notes') || 'Geen notities ingevoerd.';
+      document.getElementById('pdfNotesContent').innerText = notes;
+
+      const element = document.getElementById('doctorExportContainer');
+      element.style.display = 'block';
+
+      const opt = {
+        margin:       10,
+        filename:     `MS_Vita_Rapport_${patientName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().from(element).set(opt).save().then(() => {
+        element.style.display = 'none';
+      }).catch(err => {
+        console.error(err);
+        alert('Er ging iets mis bij het genereren van de PDF.');
+        element.style.display = 'none';
       });
     }
 
