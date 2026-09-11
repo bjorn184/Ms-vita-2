@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MS Vita - Dashboard</title>
-  <link rel="manifest" href="/Ms-vita-2/manifest.json">
+  <link rel="manifest" href="./manifest.json">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Bibliotheek voor het genereren van de artsen-PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -210,7 +210,7 @@
     }
   </style>
 </head>
-<body>
+<body onload="checkUserName(); initLiveClock(); fetchWeatherAndTheme(); loadSymptomsHistory(); loadMedicationList(); loadNotes();">
 
   <!-- Live Klok & Weer Header -->
   <div id="weatherHeaderCard" class="card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(8, 145, 178, 0.05)); border-color: rgba(6, 182, 212, 0.4); position: relative; overflow: hidden;">
@@ -243,7 +243,7 @@
     </div>
   </div>
 
-  <!-- TAB 1: Klachten & MS Vita Cirkeldiagrammen -->
+  <!-- TAB 1: Klachten & MS Vita Staafdiagrammen -->
   <div id="tab-klachten" class="tab-content active">
     <div class="card">
       <h2>Klachten</h2>
@@ -278,22 +278,22 @@
 
       <button onclick="saveSymptoms()" style="margin-top: 15px;">Klachten Opslaan</button>
 
-      <!-- MS Vita Cirkeldiagrammen -->
+      <!-- MS Vita Staafdiagrammen -->
       <div style="margin-top: 30px; border-top: 1px solid var(--card-border); padding-top: 20px;">
-        <h3 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 5px;">MS Vita Cirkeldiagrammen</h3>
+        <h3 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 5px;">MS Vita Staafdiagrammen</h3>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Klik op een meting in de historie om de diagrammen direct te filteren.</p>
         
         <div style="background: var(--card-bg); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px;">
-          <span style="font-size: 0.95rem; color: #f59e0b; font-weight: 600;">Vermoeidheid Diagram</span>
+          <span style="font-size: 0.95rem; color: #f59e0b; font-weight: 600;">Vermoeidheid Staafdiagram</span>
           <div style="position: relative; height: 220px; margin-top: 10px;">
-            <canvas id="fatiguePieChart"></canvas>
+            <canvas id="fatigueBarChart"></canvas>
           </div>
         </div>
         
         <div style="background: var(--card-bg); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 12px; padding: 15px; text-align: center;">
-          <span style="font-size: 0.95rem; color: var(--accent-color); font-weight: 600;">Mobiliteit Diagram</span>
+          <span style="font-size: 0.95rem; color: var(--accent-color); font-weight: 600;">Mobiliteit Staafdiagram</span>
           <div style="position: relative; height: 220px; margin-top: 10px;">
-            <canvas id="mobilityPieChart"></canvas>
+            <canvas id="mobilityBarChart"></canvas>
           </div>
         </div>
       </div>
@@ -310,7 +310,7 @@
     <div class="card">
       <h2>Notities & Dagboek</h2>
       <p style="color: var(--text-muted); font-size: 0.85rem;">Schrijf hier je dagelijkse gedachten of notities op.</p>
-      <textarea id="userNotes" rows="6" placeholder="Typ hier je notities..."></textarea>
+      <textarea id="userNotes" rows="6" placeholder="Typ hier je notities..." oninput="autoSaveNotes()"></textarea>
       <button onclick="saveNotes()">Notities Opslaan</button>
     </div>
   </div>
@@ -398,7 +398,7 @@
     </div>
   </div>
 
-  <!-- TAB 6: Instellingen -->
+  <!-- TAB 6: Instellingen & Export -->
   <div id="tab-instellingen" class="tab-content">
     <div class="card">
       <h2>Instellingen & Export</h2>
@@ -410,7 +410,7 @@
 
       <div style="margin-top: 30px; border-top: 1px solid var(--card-border); padding-top: 20px;">
         <h3 style="font-size: 1.1rem; color: var(--accent-color); margin-top: 0;">🩺 Rapport voor de Arts</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted);">Exporteer al je opgeslagen vermoeidheidsmetingen, mobiliteitsscores, diagrammen, medicatie en dagboeknotities direct als een net overzichtelijk PDF-bestand.</p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Exporteer al je opgeslagen vermoeidheidsmetingen, mobiliteitsscores, staafdiagrammen, medicatie en dagboeknotities direct als een net overzichtelijk PDF-bestand.</p>
         <button onclick="exportDoctorReport()" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">Exporteer Artsen-Rapport (PDF)</button>
       </div>
     </div>
@@ -446,14 +446,14 @@
     </div>
 
     <div style="margin-bottom: 25px;">
-      <h3 style="color: #0891b2; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-size: 16px;">2. Visueel Overzicht / Diagrammen</h3>
+      <h3 style="color: #0891b2; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-size: 16px;">2. Visueel Overzicht / Staafdiagrammen</h3>
       <div style="display: flex; gap: 20px; justify-content: space-around; margin-top: 15px;">
         <div style="text-align: center; width: 45%;">
-          <p style="font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #b45309;">Vermoeidheid</p>
+          <p style="font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #b45309;">Vermoeidheid Staafdiagram</p>
           <img id="pdfFatigueChartImg" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px;" />
         </div>
         <div style="text-align: center; width: 45%;">
-          <p style="font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #0891b2;">Mobiliteit</p>
+          <p style="font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #0891b2;">Mobiliteit Staafdiagram</p>
           <img id="pdfMobilityChartImg" style="max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 8px;" />
         </div>
       </div>
@@ -511,7 +511,7 @@
       btnElement.classList.add('active');
       
       if (tabId === 'klachten') {
-        setTimeout(renderPieCharts, 50);
+        setTimeout(renderBarCharts, 50);
       }
     }
 
@@ -567,7 +567,6 @@
       const descEl = document.getElementById('weatherDescription');
       const emojiEl = document.getElementById('weatherEmoji');
       
-      // Kijk of er opgeslagen coördinaten zijn via GPS, anders val terug op opgeslagen stad of standaard 'Leuven'
       let savedLat = localStorage.getItem('ms_vita_lat');
       let savedLon = localStorage.getItem('ms_vita_lon');
       let savedLocation = localStorage.getItem('ms_vita_location') || "Leuven";
@@ -580,7 +579,6 @@
           longitude = savedLon;
           locationName = savedLocation;
         } else {
-          // Geocoding via stadnaam
           const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(savedLocation)}&count=1`);
           const geoData = await geoRes.json();
           
@@ -631,12 +629,7 @@
           localStorage.setItem('ms_vita_lat', lat);
           localStorage.setItem('ms_vita_lon', lon);
           localStorage.removeItem('ms_vita_use_city_override');
-
-          // Probeer optioneel de plaatsnaam te achterhalen via reverse geocoding of coördinaten
-          try {
-            const revRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=Leuven&count=1`); // Fallback naam als reverse niet direct lukt
-            localStorage.setItem('ms_vita_location', "Huidige GPS-locatie");
-          } catch(err) {}
+          localStorage.setItem('ms_vita_location', "Huidige GPS-locatie");
 
           fetchWeatherAndTheme();
         },
@@ -701,7 +694,7 @@
       activeHighlightIndex = null;
       
       updateDynamicGreeting();
-      renderPieCharts();
+      renderBarCharts();
       loadSymptomsHistory();
       alert('Klachten succesvol opgeslagen!');
     }
@@ -712,6 +705,7 @@
       let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
       if (symptoms.length === 0) {
         container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">Nog geen metingen geregistreerd.</p>';
+        renderBarCharts();
         return;
       }
       container.innerHTML = symptoms.map((s, index) => {
@@ -726,6 +720,7 @@
           </div>
         `;
       }).join('');
+      renderBarCharts();
     }
 
     function highlightSymptom(index) {
@@ -734,7 +729,7 @@
       } else {
         activeHighlightIndex = index;
       }
-      renderPieCharts();
+      renderBarCharts();
       loadSymptomsHistory();
     }
 
@@ -744,9 +739,69 @@
       if (activeHighlightIndex === index) activeHighlightIndex = null;
       else if (activeHighlightIndex > index) activeHighlightIndex--;
       localStorage.setItem('ms_vita_symptoms', JSON.stringify(symptoms));
-      renderPieCharts();
       loadSymptomsHistory();
-      updateDynamicGreeting();
+    }
+
+    function renderBarCharts() {
+      const symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
+      const labels = symptoms.map(s => s.date);
+      const fatigueData = symptoms.map(s => s.fatigue);
+      const mobilityData = symptoms.map(s => s.mobility);
+
+      const fatigueColors = symptoms.map((_, idx) => (activeHighlightIndex === null || activeHighlightIndex === idx) ? '#f59e0b' : 'rgba(245, 158, 11, 0.2)');
+      const mobilityColors = symptoms.map((_, idx) => (activeHighlightIndex === null || activeHighlightIndex === idx) ? '#06b6d4' : 'rgba(6, 182, 212, 0.2)');
+
+      // Vermoeidheid Staafdiagram
+      const ctxFatigue = document.getElementById('fatigueBarChart');
+      if (ctxFatigue) {
+        if (fatigueChartInstance) fatigueChartInstance.destroy();
+        fatigueChartInstance = new Chart(ctxFatigue, {
+          type: 'bar',
+          data: {
+            labels: labels.length ? labels : ['Geen data'],
+            datasets: [{
+              label: 'Vermoeidheid (1-10)',
+              data: fatigueData.length ? fatigueData : [0],
+              backgroundColor: fatigueColors.length ? fatigueColors : ['rgba(245, 158, 11, 0.2)'],
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { min: 0, max: 10, ticks: { stepSize: 2 } }
+            },
+            plugins: { legend: { display: false } }
+          }
+        });
+      }
+
+      // Mobiliteit Staafdiagram
+      const ctxMobility = document.getElementById('mobilityBarChart');
+      if (ctxMobility) {
+        if (mobilityChartInstance) mobilityChartInstance.destroy();
+        mobilityChartInstance = new Chart(ctxMobility, {
+          type: 'bar',
+          data: {
+            labels: labels.length ? labels : ['Geen data'],
+            datasets: [{
+              label: 'Mobiliteit (1-10)',
+              data: mobilityData.length ? mobilityData : [0],
+              backgroundColor: mobilityColors.length ? mobilityColors : ['rgba(6, 182, 212, 0.2)'],
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { min: 0, max: 10, ticks: { stepSize: 2 } }
+            },
+            plugins: { legend: { display: false } }
+          }
+        });
+      }
     }
 
     function saveNotes() {
@@ -755,70 +810,88 @@
       alert('Notities opgeslagen!');
     }
 
+    function autoSaveNotes() {
+      const notes = document.getElementById('userNotes').value;
+      localStorage.setItem('ms_vita_notes', notes);
+    }
+
     function loadNotes() {
-      const savedNotes = localStorage.getItem('ms_vita_notes') || '';
+      const notes = localStorage.getItem('ms_vita_notes') || '';
       const notesEl = document.getElementById('userNotes');
-      if (notesEl) notesEl.value = savedNotes;
+      if (notesEl) notesEl.value = notes;
     }
 
-    function loadMedications() {
-      const container = document.getElementById('medicationList');
-      if (!container) return;
-      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '["Tecfidera / Dimethylfumaraat", "Fysiotherapie / Kinesitherapie"]');
-      
-      container.innerHTML = meds.map((med, index) => `
-        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
-          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 0; color: #000000 !important; font-weight: 600;">
-            <input type="checkbox" style="width: auto; margin-bottom: 0;">
-            <span style="color: #000000 !important;">${med}</span>
-          </label>
-          <button onclick="deleteMedication(${index})" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 6px; font-size: 0.75rem; width: auto; margin-top: 0;">Verwijder</button>
-        </div>
-      `).join('');
-    }
-
-    function addPresetMedication(selectEl) {
-      const val = selectEl.value;
+    function addPresetMedication(selectElement) {
+      const val = selectElement.value;
       if (!val) return;
-      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '["Tecfidera / Dimethylfumaraat", "Fysiotherapie / Kinesitherapie"]');
+      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '[]');
       if (!meds.includes(val)) {
         meds.push(val);
         localStorage.setItem('ms_vita_meds', JSON.stringify(meds));
-        loadMedications();
+        loadMedicationList();
       }
-      selectEl.value = "";
+      selectElement.value = '';
     }
 
     function addCustomMedication() {
       const input = document.getElementById('newMedInput');
       const val = input.value.trim();
       if (!val) return;
-      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '["Tecfidera / Dimethylfumaraat", "Fysiotherapie / Kinesitherapie"]');
-      meds.push(val);
-      localStorage.setItem('ms_vita_meds', JSON.stringify(meds));
+      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '[]');
+      if (!meds.includes(val)) {
+        meds.push(val);
+        localStorage.setItem('ms_vita_meds', JSON.stringify(meds));
+        loadMedicationList();
+      }
       input.value = '';
-      loadMedications();
+    }
+
+    function loadMedicationList() {
+      const container = document.getElementById('medicationList');
+      if (!container) return;
+      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '[]');
+      if (meds.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">Geen medicatie of therapieën toegevoegd.</p>';
+        return;
+      }
+      container.innerHTML = meds.map((m, index) => `
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+          <span>💊 ${m}</span>
+          <button onclick="deleteMedication(${index})" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 6px; font-size: 0.75rem; width: auto; margin-top: 0;">Wis</button>
+        </div>
+      `).join('');
     }
 
     function deleteMedication(index) {
-      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '["Tecfidera / Dimethylfumaraat", "Fysiotherapie / Kinesitherapie"]');
+      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '[]');
       meds.splice(index, 1);
       localStorage.setItem('ms_vita_meds', JSON.stringify(meds));
-      loadMedications();
+      loadMedicationList();
     }
 
     function handleScanFile(event) {
       const file = event.target.files[0];
-      const resEl = document.getElementById('scannerResult');
       if (!file) return;
-      resEl.innerHTML = `<p style="color: var(--accent-color); font-size: 0.85rem;">Bestand "${file.name}" succesvol geladen en geanalyseerd.</p>`;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const resultContainer = document.getElementById('scannerResult');
+        resultContainer.innerHTML = `
+          <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 15px; text-align: center;">
+            <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 10px;">Scandocument succesvol geladen:</p>
+            <img src="${e.target.result}" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid var(--card-border);" />
+          </div>
+        `;
+      };
+      reader.readAsDataURL(file);
     }
 
     function loadSettingsValues() {
-      const nameEl = document.getElementById('settingsUserName');
-      const locEl = document.getElementById('settingsLocation');
-      if (nameEl) nameEl.value = localStorage.getItem('ms_vita_username') || '';
-      if (locEl) locEl.value = localStorage.getItem('ms_vita_location') || 'Leuven';
+      const userName = localStorage.getItem('ms_vita_username') || '';
+      const location = localStorage.getItem('ms_vita_location') || 'Leuven';
+      const nameInput = document.getElementById('settingsUserName');
+      const locInput = document.getElementById('settingsLocation');
+      if (nameInput) nameInput.value = userName;
+      if (locInput) locInput.value = location;
     }
 
     function saveSettings() {
@@ -830,88 +903,22 @@
         localStorage.setItem('ms_vita_use_city_override', 'true');
         localStorage.removeItem('ms_vita_lat');
         localStorage.removeItem('ms_vita_lon');
+        fetchWeatherAndTheme();
       }
       updateDynamicGreeting();
-      fetchWeatherAndTheme();
       alert('Instellingen opgeslagen!');
     }
 
-    function renderPieCharts() {
-      let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
-      
-      let labels = symptoms.map(s => `${s.date} (${s.fatigue}/10)`);
-      let fatigueData = symptoms.map(s => s.fatigue);
-      let mobilityData = symptoms.map(s => s.mobility);
-
-      if (activeHighlightIndex !== null && symptoms[activeHighlightIndex]) {
-        const item = symptoms[activeHighlightIndex];
-        labels = [`${item.date} [Geselecteerd]`];
-        fatigueData = [item.fatigue];
-        mobilityData = [item.mobility];
-      }
-
-      const ctxFatigue = document.getElementById('fatiguePieChart');
-      const ctxMobility = document.getElementById('mobilityPieChart');
-      if (!ctxFatigue || !ctxMobility) return;
-
-      if (fatigueChartInstance) fatigueChartInstance.destroy();
-      if (mobilityChartInstance) mobilityChartInstance.destroy();
-
-      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim();
-
-      const commonOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { 
-          legend: { 
-            position: 'bottom', 
-            labels: { 
-              color: textColor, 
-              boxWidth: 12,
-              font: { size: 11 }
-            } 
-          } 
-        }
-      };
-
-      fatigueChartInstance = new Chart(ctxFatigue, {
-        type: 'pie',
-        data: {
-          labels: labels.length ? labels : ['Geen data'],
-          datasets: [{
-            data: fatigueData.length ? fatigueData : [1],
-            backgroundColor: ['#f59e0b', '#d97706', '#fbbf24', '#b45309', '#fcd34d', '#78350f', '#f97316'],
-            borderColor: 'transparent',
-            borderWidth: 1
-          }]
-        },
-        options: commonOptions
-      });
-
-      mobilityChartInstance = new Chart(ctxMobility, {
-        type: 'pie',
-        data: {
-          labels: labels.length ? labels : ['Geen data'],
-          datasets: [{
-            data: mobilityData.length ? mobilityData : [1],
-            backgroundColor: ['#06b6d4', '#0891b2', '#22d3ee', '#155e75', '#67e3f0', '#0e7490', '#38bdf8'],
-            borderColor: 'transparent',
-            borderWidth: 1
-          }]
-        },
-        options: commonOptions
-      });
-    }
-
-    function exportDoctorReport() {
+    async function exportDoctorReport() {
       const patientName = localStorage.getItem('ms_vita_username') || 'Patiënt';
       document.getElementById('pdfPatientName').innerText = patientName;
-      document.getElementById('pdfExportDate').innerText = new Date().toLocaleDateString('nl-BE', { day: '2-digit', month: 'long', year: 'numeric' });
+      document.getElementById('pdfExportDate').innerText = new Date().toLocaleDateString('nl-BE');
 
+      // Vul tabel met klachten
       const symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
       const tbody = document.getElementById('pdfSymptomsTableBody');
       if (symptoms.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" style="padding: 10px; border: 1px solid #cbd5e1; text-align: center; color: #64748b;">Geen metingen geregistreerd.</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="3" style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">Geen klachten geregistreerd.</td></tr>';
       } else {
         tbody.innerHTML = symptoms.map(s => `
           <tr>
@@ -922,55 +929,46 @@
         `).join('');
       }
 
-      const fatigueCanvas = document.getElementById('fatiguePieChart');
-      const mobilityCanvas = document.getElementById('mobilityPieChart');
-      if (fatigueCanvas) {
-        document.getElementById('pdfFatigueChartImg').src = fatigueCanvas.toDataURL('image/png');
+      // Converteer staafdiagrammen naar afbeeldingen voor in de PDF
+      if (fatigueChartInstance) {
+        document.getElementById('pdfFatigueChartImg').src = fatigueChartInstance.toBase64Image();
       }
-      if (mobilityCanvas) {
-        document.getElementById('pdfMobilityChartImg').src = mobilityCanvas.toDataURL('image/png');
+      if (mobilityChartInstance) {
+        document.getElementById('pdfMobilityChartImg').src = mobilityChartInstance.toBase64Image();
       }
 
+      // Vul medicatielijst
       const meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '[]');
       const medListEl = document.getElementById('pdfMedList');
       if (meds.length === 0) {
-        medListEl.innerHTML = `<li>Geen medicatie of therapieën opgegeven.</li>`;
+        medListEl.innerHTML = '<li>Geen actieve medicatie of therapieën opgegeven.</li>';
       } else {
         medListEl.innerHTML = meds.map(m => `<li>${m}</li>`).join('');
       }
 
-      const notes = localStorage.getItem('ms_vita_notes') || 'Geen notities ingevoerd.';
-      document.getElementById('pdfNotesContent').innerText = notes;
+      // Vul notities
+      const notes = localStorage.getItem('ms_vita_notes') || '';
+      const notesEl = document.getElementById('pdfNotesContent');
+      notesEl.innerText = notes.trim() !== '' ? notes : 'Geen notities ingevoerd.';
 
+      // Genereer PDF via html2pdf
       const element = document.getElementById('doctorExportContainer');
       element.style.display = 'block';
 
       const opt = {
         margin:       10,
-        filename:     `MS_Vita_Rapport_${patientName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`,
+        filename:     `MS_Vita_Rapport_${patientName.replace(/\s+/g, '_')}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      html2pdf().from(element).set(opt).save().then(() => {
+      try {
+        await html2pdf().set(opt).from(element).save();
+      } finally {
         element.style.display = 'none';
-      }).catch(err => {
-        console.error(err);
-        alert('Er ging iets mis bij het genereren van de PDF.');
-        element.style.display = 'none';
-      });
+      }
     }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      checkUserName();
-      initLiveClock();
-      fetchWeatherAndTheme();
-      renderPieCharts();
-      loadSymptomsHistory();
-      loadNotes();
-      loadMedications();
-    });
   </script>
 </body>
 </html>
