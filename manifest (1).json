@@ -1,0 +1,41 @@
+{
+  "background_color": "#0b0f19",
+  "dir": "ltr",
+  "display": "fullscreen",
+  "name": "MS Vita",
+  "orientation": "any",
+  "scope": "/Ms-vita/",
+  "short_name": "MS Vita",
+  "start_url": "/Ms-vita/",
+  "theme_color": "#06b6d4",
+  "id": "Ms-vita",
+  "lang": "nl",
+  "description": "Jouw persoonlijke MS dashboard",
+  "categories": [
+    "health",
+    "medical"
+  ],
+  "icons": [
+    {
+      "src": "/Ms-vita/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Ms-vita/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/Ms-vita/screenshot1.png",
+      "sizes": "597x949",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "MS Vita Dashboard"
+    }
+  ]
+}

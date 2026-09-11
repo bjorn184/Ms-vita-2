@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MS Vita - Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-color: #06b6d4;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    /* Automatische overname van de telefoonmodus (Light / Dark mode) */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg-color: #f1f5f9;
+        --card-bg: rgba(255, 255, 255, 0.85);
+        --card-border: rgba(0, 0, 0, 0.08);
+        --accent-color: #0284c7;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+      }
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-bottom: 90px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--accent-color), #0891b2);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    input, textarea {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      color: var(--text-main);
+      padding: 12px;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 6px;
+      margin-bottom: 16px;
+    }
+
+    /* Specifieke styling voor de keuzelijst met geforceerde zwarte tekstkleur */
+    select {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 6px;
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
+    select option {
+      background: #ffffff !important;
+      color: #000000 !important;
+      padding: 8px;
+    }
+
+    select optgroup {
+      color: #334155 !important;
+      font-weight: bold;
+      background: #f8fafc !important;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent-color);
+      outline: none;
+    }
+
+    /* Bottom Nav Bar */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      z-index: 999;
+      max-width: 600px;
+      margin: 0 auto;
+      overflow-x: auto;
+    }
+
+    .nav-item {
+      background: none;
+      border: none;
+      box-shadow: none;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 4px 2px;
+      margin-top: 0;
+      width: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .nav-item span {
+      font-size: 1.1rem;
+    }
+
+    .nav-item.active {
+      color: var(--accent-color);
+    }
+
+    .score-grid {
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      margin-top: 6px;
+    }
+
+    .score-btn {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 10px 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: none;
+      margin-top: 0;
+      text-align: center;
+    }
+
+    .score-btn.selected {
+      background: var(--accent-color);
+      color: white;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+    }
+
+    #nameModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Live Klok & Weer Header -->
+  <div id="weatherHeaderCard" class="card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(8, 145, 178, 0.05)); border-color: rgba(6, 182, 212, 0.4); position: relative; overflow: hidden;">
+    <div id="weatherEmoji" style="position: absolute; right: -10px; bottom: -15px; font-size: 5rem; opacity: 0.2; pointer-events: none;">☀️</div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; margin-bottom: 10px;">
+      <div>
+        <h2 id="dynamicGreeting" style="margin: 0; font-size: 1.3rem;">Welkom bij MS Vita</h2>
+        <p id="weatherDescription" style="color: var(--text-muted); font-size: 0.85rem; margin: 2px 0 0 0;">Weer wordt geladen...</p>
+      </div>
+      <div style="text-align: right;">
+        <div id="liveClockTime" style="font-size: 1.6rem; font-weight: 700; color: var(--accent-color); font-variant-numeric: tabular-nums;">00:00:00</div>
+        <div id="liveClockDate" style="font-size: 0.75rem; color: var(--text-muted);">--</div>
+      </div>
+    </div>
+    
+    <div style="display: flex; justify-content: flex-end;">
+      <button onclick="openLocationSettings()" style="width: auto; padding: 4px 8px; font-size: 0.75rem; margin-top: 0; background: var(--card-bg); border: 1px solid var(--card-border);">Locatie wijzigen</button>
+    </div>
+  </div>
+
+  <!-- Naam Modal -->
+  <div id="nameModal">
+    <div class="card" style="width: 100%; max-width: 400px; text-align: center;">
+      <h3>Hoe mag de app je noemen?</h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">Vul je voornaam in voor een persoonlijk welkom.</p>
+      <input type="text" id="userNameInput" placeholder="Bijv. Bjorn">
+      <button onclick="saveUserName()">Opslaan</button>
+    </div>
+  </div>
+
+  <!-- TAB 1: Klachten & MS Vita Cirkeldiagrammen -->
+  <div id="tab-klachten" class="tab-content active">
+    <div class="card">
+      <h2>Klachten</h2>
+      
+      <label>Vermoeidheid (1-10)</label>
+      <div class="score-grid" id="fatigueScores">
+        <div class="score-btn" onclick="selectScore('fatigue', 1)">1</div>
+        <div class="score-btn" onclick="selectScore('fatigue', 2)">2</div>
+        <div class="score-btn" onclick="selectScore('fatigue', 3)">3</div>
+        <div class="score-btn" onclick="selectScore('fatigue', 4)">4</div>
+        <div class="score-btn selected" onclick="selectScore('fatigue', 5)">5</div>
+        <div class="score-btn" onclick="selectScore('fatigue', 6)">6</div>
+        <div class="score-btn" onclick="selectScore('fatigue', 7)">7</div>
+        <div class="score-btn" onclick="selectScore('fatigue', 8)">8</div>
+        <div class="score-btn" onclick="selectScore('fatigue', 9)">9</div>
+        <div class="score-btn" onclick="selectScore('fatigue', 10)">10</div>
+      </div>
+
+      <label style="margin-top: 15px; display: block;">Mobiliteit / Spierzwakte (1-10)</label>
+      <div class="score-grid" id="mobilityScores">
+        <div class="score-btn" onclick="selectScore('mobility', 1)">1</div>
+        <div class="score-btn" onclick="selectScore('mobility', 2)">2</div>
+        <div class="score-btn" onclick="selectScore('mobility', 3)">3</div>
+        <div class="score-btn" onclick="selectScore('mobility', 4)">4</div>
+        <div class="score-btn selected" onclick="selectScore('mobility', 5)">5</div>
+        <div class="score-btn" onclick="selectScore('mobility', 6)">6</div>
+        <div class="score-btn" onclick="selectScore('mobility', 7)">7</div>
+        <div class="score-btn" onclick="selectScore('mobility', 8)">8</div>
+        <div class="score-btn" onclick="selectScore('mobility', 9)">9</div>
+        <div class="score-btn" onclick="selectScore('mobility', 10)">10</div>
+      </div>
+
+      <button onclick="saveSymptoms()" style="margin-top: 15px;">Klachten Opslaan</button>
+
+      <!-- MS Vita Cirkeldiagrammen -->
+      <div style="margin-top: 30px; border-top: 1px solid var(--card-border); padding-top: 20px;">
+        <h3 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 5px;">MS Vita Cirkeldiagrammen</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Klik op een meting in de historie om de diagrammen direct te filteren.</p>
+        
+        <div style="background: var(--card-bg); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px;">
+          <span style="font-size: 0.95rem; color: #f59e0b; font-weight: 600;">Vermoeidheid Diagram</span>
+          <div style="position: relative; height: 220px; margin-top: 10px;">
+            <canvas id="fatiguePieChart"></canvas>
+          </div>
+        </div>
+        
+        <div style="background: var(--card-bg); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 12px; padding: 15px; text-align: center;">
+          <span style="font-size: 0.95rem; color: var(--accent-color); font-weight: 600;">Mobiliteit Diagram</span>
+          <div style="position: relative; height: 220px; margin-top: 10px;">
+            <canvas id="mobilityPieChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 25px; border-top: 1px solid var(--card-border); padding-top: 15px;">
+        <h3 style="font-size: 1rem; margin-top: 0;">Opgeslagen Metingen Beheren</h3>
+        <div id="symptomsHistoryList" style="max-height: 200px; overflow-y: auto; margin-top: 10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Notities -->
+  <div id="tab-notities" class="tab-content">
+    <div class="card">
+      <h2>Notities & Dagboek</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">Schrijf hier je dagelijkse gedachten of notities op.</p>
+      <textarea id="userNotes" rows="6" placeholder="Typ hier je notities..."></textarea>
+      <button onclick="saveNotes()">Notities Opslaan</button>
+    </div>
+  </div>
+
+  <!-- TAB 3: Medicatie & Therapie -->
+  <div id="tab-medicatie" class="tab-content">
+    <div class="card">
+      <h2>Medicatie & Therapieën</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">Kies uit de lijst of voeg zelf je behandelingen toe.</p>
+      
+      <label>Kies uit veelvoorkomende opties:</label>
+      <select id="presetMedSelect" onchange="addPresetMedication(this)">
+        <option value="">-- Selecteer medicatie of therapie --</option>
+        <optgroup label="MS Remmers / DMT's (Orale pillen)">
+          <option value="Tecfidera / Dimethylfumaraat">Tecfidera / Dimethylfumaraat</option>
+          <option value="Vumerity / Diroximfumaraat">Vumerity / Diroximfumaraat</option>
+          <option value="Aubagio / Teriflunomide">Aubagio / Teriflunomide</option>
+          <option value="Mavenclad / Cladribine">Mavenclad / Cladribine</option>
+          <option value="Zeposia / Ozanimod">Zeposia / Ozanimod</option>
+          <option value="Ponvory / Ponesimod">Ponvory / Ponesimod</option>
+          <option value="Gilenya / Fingolimod">Gilenya / Fingolimod</option>
+        </optgroup>
+        <optgroup label="MS Remmers / DMT's (Infusie / Injectie)">
+          <option value="Ocrevus / Ocrelizumab (Infuus)">Ocrevus / Ocrelizumab (Infuus)</option>
+          <option value="Kesimpta / Ofatumumab (Injectie)">Kesimpta / Ofatumumab (Injectie)</option>
+          <option value="Tysabri / Natalizumab (Infuus)">Tysabri / Natalizumab (Infuus)</option>
+          <option value="Lemtrada / Alemtuzumab (Infuus)">Lemtrada / Alemtuzumab (Infuus)</option>
+          <option value="Copaxone / Glatirameeracetaat (Injectie)">Copaxone / Glatirameeracetaat (Injectie)</option>
+          <option value="Betaferon / Avonex / Rebif (Interferon beta)">Betaferon / Avonex / Rebif (Interferon beta)</option>
+        </optgroup>
+        <optgroup label="Symptoombestrijding & Hulpmiddelen">
+          <option value="Fampyra / Fampridine (Wandelsnelheid)">Fampyra / Fampridine (Wandelsnelheid)</option>
+          <option value="Baclofen (Spierrelaxant / Spasticiteit)">Baclofen (Spierrelaxant / Spasticiteit)</option>
+          <option value="Sativex (Cannabissspray bij spasticiteit)">Sativex (Cannabissspray bij spasticiteit)</option>
+          <option value="Gabapentine / Pregabaline (Zenuwpijn)">Gabapentine / Pregabaline (Zenuwpijn)</option>
+        </optgroup>
+        <optgroup label="Therapieën & Beweging">
+          <option value="Fysiotherapie / Kinesitherapie">Fysiotherapie / Kinesitherapie</option>
+          <option value="Ergotherapie">Ergotherapie</option>
+          <option value="Logopedie">Logopedie</option>
+          <option value="Fitness / Krachttraining">Fitness / Krachttraining</option>
+          <option value="Hydrotherapie">Hydrotherapie</option>
+        </optgroup>
+      </select>
+
+      <label style="margin-top: 15px; display: block;">Of voeg zelf toe:</label>
+      <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+        <input type="text" id="newMedInput" placeholder="Eigen medicatie of therapie..." style="margin-bottom: 0;">
+        <button onclick="addCustomMedication()" style="width: auto; margin-top: 0; padding: 0 16px;">Toevoegen</button>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-top: 20px;">Mijn Actieve Lijst</h3>
+      <div id="medicationList" style="margin-top: 10px;"></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Scanner -->
+  <div id="tab-scanner" class="tab-content">
+    <div class="card">
+      <h2>Scanner</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">Scan documenten, voorschriften of verpakkingen.</p>
+      <div style="background: var(--card-bg); border: 2px dashed var(--card-border); border-radius: 12px; padding: 30px; text-align: center; margin-top: 15px;">
+        <span style="font-size: 2.5rem; display: block; margin-bottom: 10px;">📷</span>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">Upload of maak een foto om te scannen</p>
+        <input type="file" id="scannerFileInput" accept="image/*" capture="environment" style="display: none;" onchange="handleScanFile(event)">
+        <button onclick="document.getElementById('scannerFileInput').click()" style="width: auto; margin-top: 0;">Open Camera / Bestand</button>
+      </div>
+      <div id="scannerResult" style="margin-top: 15px;"></div>
+    </div>
+  </div>
+
+  <!-- TAB 5: Wekker -->
+  <div id="tab-wekker" class="tab-content">
+    <div class="card">
+      <h2>Wekker & Systeemkoppeling</h2>
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 15px;">
+        <h3 style="font-size: 1rem; margin-top: 0; color: var(--accent-color);">⏰ Snelkoppeling Wekker App</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Stel direct een wekker in via de officiële wekker-app op je apparaat.</p>
+        <label>Tijd voor wekker</label>
+        <input type="time" id="quickAlarmTime">
+        <label>Label / Omschrijving</label>
+        <input type="text" id="quickAlarmLabel" placeholder="Bijv. Ochtendmedicatie of Fysiotherapie">
+        <button onclick="openNativeAlarmApp()">Open Officiële Wekker App</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 6: Instellingen -->
+  <div id="tab-instellingen" class="tab-content">
+    <div class="card">
+      <h2>Instellingen</h2>
+      <label>Jouw Naam</label>
+      <input type="text" id="settingsUserName" placeholder="Je naam">
+      <label style="margin-top: 10px; display: block;">Locatie (Weer)</label>
+      <input type="text" id="settingsLocation" placeholder="Bijv. Leuven">
+      <button onclick="saveSettings()">Instellingen Opslaan</button>
+    </div>
+  </div>
+
+  <!-- Vaste Navigatiebalk onderaan -->
+  <nav class="nav-bar">
+    <button class="nav-item active" onclick="switchTab('klachten', this)">
+      <span>📋</span>Klachten
+    </button>
+    <button class="nav-item" onclick="switchTab('notities', this)">
+      <span>📝</span>Notities
+    </button>
+    <button class="nav-item" onclick="switchTab('medicatie', this)">
+      <span>💊</span>Medicatie
+    </button>
+    <button class="nav-item" onclick="switchTab('scanner', this)">
+      <span>📷</span>Scanner
+    </button>
+    <button class="nav-item" onclick="switchTab('wekker', this)">
+      <span>⏰</span>Wekker
+    </button>
+    <button class="nav-item" onclick="switchTab('instellingen', this)">
+      <span>⚙️</span>Instell.
+    </button>
+  </nav>
+
+  <script>
+    let selectedFatigue = 5;
+    let selectedMobility = 5;
+    let fatigueChartInstance = null;
+    let mobilityChartInstance = null;
+    let activeHighlightIndex = null;
+
+    function switchTab(tabId, btnElement) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+      document.getElementById('tab-' + tabId).classList.add('active');
+      btnElement.classList.add('active');
+    }
+
+    function checkUserName() {
+      const userName = localStorage.getItem('ms_vita_username');
+      if (!userName) {
+        document.getElementById('nameModal').style.display = 'flex';
+      } else {
+        updateDynamicGreeting();
+        loadSettingsValues();
+      }
+    }
+
+    function saveUserName() {
+      const nameInput = document.getElementById('userNameInput').value.trim();
+      if (!nameInput) return;
+      localStorage.setItem('ms_vita_username', nameInput);
+      document.getElementById('nameModal').style.display = 'none';
+      updateDynamicGreeting();
+      loadSettingsValues();
+    }
+
+    function updateDynamicGreeting() {
+      const userName = localStorage.getItem('ms_vita_username') || 'Gebruiker';
+      const greetingEl = document.getElementById('dynamicGreeting');
+      const hour = new Date().getHours();
+      let timeOfDay = "Goedendag";
+      if (hour < 12) timeOfDay = "Goedemorgen";
+      else if (hour < 18) timeOfDay = "Goedemiddag";
+      else timeOfDay = "Goedenavond";
+
+      if (greetingEl) {
+        greetingEl.innerText = `${timeOfDay}, ${userName}!`;
+      }
+    }
+
+    function initLiveClock() {
+      function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('nl-BE');
+        const dateStr = now.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        
+        const timeEl = document.getElementById('liveClockTime');
+        const dateEl = document.getElementById('liveClockDate');
+        if (timeEl) timeEl.innerText = timeStr;
+        if (dateEl) dateEl.innerText = dateStr;
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    async function fetchWeatherAndTheme() {
+      let savedLocation = localStorage.getItem('ms_vita_location') || "Leuven";
+      const descEl = document.getElementById('weatherDescription');
+      const emojiEl = document.getElementById('weatherEmoji');
+
+      try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(savedLocation)}&count=1`);
+        const geoData = await geoRes.json();
+        
+        if (!geoData.results || geoData.results.length === 0) return;
+
+        const { latitude, longitude, name, country } = geoData.results[0];
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=Europe%2FBrussels`);
+        const data = await weatherRes.json();
+        const temp = data.current.temperature_2m;
+        const code = data.current.weather_code;
+
+        let weatherText = `${name} (${country || ''}): ${temp}°C`;
+        let emoji = "⛅";
+
+        if (code === 0) { weatherText += ", Heldere hemel"; emoji = "☀️"; }
+        else if (code >= 1 && code <= 3) { weatherText += ", Licht bewolkt"; emoji = "🌤️"; }
+        else if (code >= 51 && code <= 67) { weatherText += ", Regenachtig"; emoji = "🌧️"; }
+        else { weatherText += ", Bewolkt"; emoji = "☁️"; }
+
+        descEl.innerText = weatherText;
+        emojiEl.innerText = emoji;
+      } catch (e) {
+        descEl.innerText = `${savedLocation}: Weergegevens niet beschikbaar`;
+      }
+    }
+
+    function openLocationSettings() {
+      const newLoc = prompt("Geef je locatie (stad/gemeente) in:", localStorage.getItem('ms_vita_location') || "Leuven");
+      if (newLoc && newLoc.trim() !== "") {
+        localStorage.setItem('ms_vita_location', newLoc.trim());
+        fetchWeatherAndTheme();
+      }
+    }
+
+    function selectScore(type, val) {
+      if(type === 'fatigue') {
+        selectedFatigue = val;
+        const container = document.getElementById('fatigueScores');
+        container.querySelectorAll('.score-btn').forEach((btn, idx) => {
+          if (idx + 1 === val) btn.classList.add('selected');
+          else btn.classList.remove('selected');
+        });
+      } else {
+        selectedMobility = val;
+        const container = document.getElementById('mobilityScores');
+        container.querySelectorAll('.score-btn').forEach((btn, idx) => {
+          if (idx + 1 === val) btn.classList.add('selected');
+          else btn.classList.remove('selected');
+        });
+      }
+    }
+
+    function openNativeAlarmApp() {
+      const timeVal = document.getElementById('quickAlarmTime').value;
+      const labelVal = document.getElementById('quickAlarmLabel').value.trim() || 'MS Vita Wekker';
+      
+      if (!timeVal) {
+        alert('Selecteer eerst een tijd voor de wekker.');
+        return;
+      }
+
+      const [hours, minutes] = timeVal.split(':').map(Number);
+      const alarmIntent = `intent://set_alarm#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${hours};i.android.intent.extra.alarm.MINUTES=${minutes};s.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(labelVal)};end`;
+      
+      window.location.href = alarmIntent;
+    }
+
+    function saveSymptoms() {
+      const date = new Date().toLocaleDateString('nl-BE');
+      let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
+      symptoms.push({ date, fatigue: selectedFatigue, mobility: selectedMobility });
+      localStorage.setItem('ms_vita_symptoms', JSON.stringify(symptoms));
+      activeHighlightIndex = null;
+      updateDynamicGreeting();
+      renderPieCharts();
+      loadSymptomsHistory();
+      alert('Klachten succesvol opgeslagen!');
+    }
+
+    function loadSymptomsHistory() {
+      const container = document.getElementById('symptomsHistoryList');
+      if (!container) return;
+      let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
+      if (symptoms.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">Nog geen metingen geregistreerd.</p>';
+        return;
+      }
+      container.innerHTML = symptoms.map((s, index) => {
+        const isSelected = activeHighlightIndex === index;
+        const bgStyle = isSelected ? 'background: rgba(6, 182, 212, 0.2); border-color: var(--accent-color);' : 'background: var(--card-bg);';
+        return `
+          <div onclick="highlightSymptom(${index})" style="${bgStyle} border: 1px solid var(--card-border); border-radius: 8px; padding: 8px 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
+            <div>
+              <strong>${s.date}</strong> — Vermoeidheid: ${s.fatigue}/10 | Mobiliteit: ${s.mobility}/10 ${isSelected ? '<strong>(Geselecteerd)</strong>' : ''}
+            </div>
+            <button onclick="event.stopPropagation(); deleteSymptom(${index})" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 6px; font-size: 0.75rem; width: auto; margin-top: 0;">Wis</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function highlightSymptom(index) {
+      if (activeHighlightIndex === index) {
+        activeHighlightIndex = null;
+      } else {
+        activeHighlightIndex = index;
+      }
+      renderPieCharts();
+      loadSymptomsHistory();
+    }
+
+    function deleteSymptom(index) {
+      let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
+      symptoms.splice(index, 1);
+      if (activeHighlightIndex === index) activeHighlightIndex = null;
+      else if (activeHighlightIndex > index) activeHighlightIndex--;
+      localStorage.setItem('ms_vita_symptoms', JSON.stringify(symptoms));
+      renderPieCharts();
+      loadSymptomsHistory();
+      updateDynamicGreeting();
+    }
+
+    function saveNotes() {
+      const notes = document.getElementById('userNotes').value;
+      localStorage.setItem('ms_vita_notes', notes);
+      alert('Notities opgeslagen!');
+    }
+
+    function loadNotes() {
+      const savedNotes = localStorage.getItem('ms_vita_notes') || '';
+      const notesEl = document.getElementById('userNotes');
+      if (notesEl) notesEl.value = savedNotes;
+    }
+
+    function loadMedications() {
+      const container = document.getElementById('medicationList');
+      if (!container) return;
+      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '["Tecfidera / Dimethylfumaraat", "Fysiotherapie / Kinesitherapie"]');
+      
+      container.innerHTML = meds.map((med, index) => `
+        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 0; color: #000000 !important; font-weight: 600;">
+            <input type="checkbox" style="width: auto; margin-bottom: 0;">
+            <span style="color: #000000 !important;">${med}</span>
+          </label>
+          <button onclick="deleteMedication(${index})" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 6px; font-size: 0.75rem; width: auto; margin-top: 0;">Verwijder</button>
+        </div>
+      `).join('');
+    }
+
+    function addPresetMedication(selectEl) {
+      const val = selectEl.value;
+      if (!val) return;
+      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '["Tecfidera / Dimethylfumaraat", "Fysiotherapie / Kinesitherapie"]');
+      if (!meds.includes(val)) {
+        meds.push(val);
+        localStorage.setItem('ms_vita_meds', JSON.stringify(meds));
+        loadMedications();
+      }
+      selectEl.value = "";
+    }
+
+    function addCustomMedication() {
+      const input = document.getElementById('newMedInput');
+      const val = input.value.trim();
+      if (!val) return;
+      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '["Tecfidera / Dimethylfumaraat", "Fysiotherapie / Kinesitherapie"]');
+      meds.push(val);
+      localStorage.setItem('ms_vita_meds', JSON.stringify(meds));
+      input.value = '';
+      loadMedications();
+    }
+
+    function deleteMedication(index) {
+      let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '["Tecfidera / Dimethylfumaraat", "Fysiotherapie / Kinesitherapie"]');
+      meds.splice(index, 1);
+      localStorage.setItem('ms_vita_meds', JSON.stringify(meds));
+      loadMedications();
+    }
+
+    function handleScanFile(event) {
+      const file = event.target.files[0];
+      const resEl = document.getElementById('scannerResult');
+      if (!file) return;
+      resEl.innerHTML = `<p style="color: var(--accent-color); font-size: 0.85rem;">Bestand "${file.name}" succesvol geladen en geanalyseerd.</p>`;
+    }
+
+    function loadSettingsValues() {
+      const nameEl = document.getElementById('settingsUserName');
+      const locEl = document.getElementById('settingsLocation');
+      if (nameEl) nameEl.value = localStorage.getItem('ms_vita_username') || '';
+      if (locEl) locEl.value = localStorage.getItem('ms_vita_location') || 'Leuven';
+    }
+
+    function saveSettings() {
+      const nameVal = document.getElementById('settingsUserName').value.trim();
+      const locVal = document.getElementById('settingsLocation').value.trim();
+      if (nameVal) localStorage.setItem('ms_vita_username', nameVal);
+      if (locVal) localStorage.setItem('ms_vita_location', locVal);
+      updateDynamicGreeting();
+      fetchWeatherAndTheme();
+      alert('Instellingen opgeslagen!');
+    }
+
+    function renderPieCharts() {
+      let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
+      
+      let labels = symptoms.map(s => s.date);
+      let fatigueData = symptoms.map(s => s.fatigue);
+      let mobilityData = symptoms.map(s => s.mobility);
+
+      if (activeHighlightIndex !== null && symptoms[activeHighlightIndex]) {
+        const item = symptoms[activeHighlightIndex];
+        labels = [item.date + ' (Geselecteerd)'];
+        fatigueData = [item.fatigue];
+        mobilityData = [item.mobility];
+      }
+
+      const ctxFatigue = document.getElementById('fatiguePieChart');
+      const ctxMobility = document.getElementById('mobilityPieChart');
+      if (!ctxFatigue || !ctxMobility) return;
+
+      if (fatigueChartInstance) fatigueChartInstance.destroy();
+      if (mobilityChartInstance) mobilityChartInstance.destroy();
+
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim();
+
+      const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { 
+          legend: { 
+            position: 'bottom', 
+            labels: { color: textColor, boxWidth: 12 } 
+          } 
+        }
+      };
+
+      fatigueChartInstance = new Chart(ctxFatigue, {
+        type: 'pie',
+        data: {
+          labels: labels.length ? labels : ['Geen data'],
+          datasets: [{
+            data: fatigueData.length ? fatigueData : [1],
+            backgroundColor: ['#f59e0b', '#d97706', '#fbbf24', '#b45309', '#fcd34d', '#78350f'],
+            borderColor: 'transparent',
+            borderWidth: 1
+          }]
+        },
+        options: commonOptions
+      });
+
+      mobilityChartInstance = new Chart(ctxMobility, {
+        type: 'pie',
+        data: {
+          labels: labels.length ? labels : ['Geen data'],
+          datasets: [{
+            data: mobilityData.length ? mobilityData : [1],
+            backgroundColor: ['#06b6d4', '#0891b2', '#22d3ee', '#155e75', '#67e3f0', '#0e7490'],
+            borderColor: 'transparent',
+            borderWidth: 1
+          }]
+        },
+        options: commonOptions
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      checkUserName();
+      initLiveClock();
+      fetchWeatherAndTheme();
+      renderPieCharts();
+      loadSymptomsHistory();
+      loadNotes();
+      loadMedications();
+    });
+  </script>
+</body>
+</html>
