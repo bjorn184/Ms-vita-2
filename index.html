@@ -46,6 +46,16 @@
       </button>
     </header>
 
+    <!-- Naam Vraag Card (Wordt getoond als naam nog niet bekend is) -->
+    <section id="namePromptSection" class="custom-card p-5 rounded-2xl shadow-lg space-y-3 border-sky-500/50 hidden">
+      <h2 class="text-base font-semibold text-sky-400">👋 Wat is je naam?</h2>
+      <p class="text-xs text-slate-300">Vul hieronder je naam in zodat de app je persoonlijk kan begroeten.</p>
+      <div class="flex gap-2">
+        <input type="text" id="quickNameInput" placeholder="Bijv. Bjorn" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+        <button onclick="saveQuickName()" class="bg-sky-600 hover:bg-sky-500 px-4 py-2.5 rounded-xl text-sm font-medium transition text-white">Opslaan</button>
+      </div>
+    </section>
+
     <!-- Tab 1: Dashboard / Home -->
     <section id="tab-dashboard" class="space-y-4">
       <!-- Dagelijkse Quote Card -->
@@ -80,7 +90,7 @@
           </div>
           <div class="flex items-start gap-2">
             <span class="text-sky-400 font-bold">•</span>
-            <span><b>Artsenrapport:</b> Exporteer al je metingen, medicatie en dagboeknotities volledig als PDF-rapport voor je volgende consultatie.</span>
+            <span><b>Artsenrapport:</b> Exporteer al je metingen, medicatie, grafieken en dagboeknotities volledig als PDF-rapport voor je volgende consultatie.</span>
           </div>
         </div>
         <button onclick="switchTab('symptoms')" class="w-full mt-2 py-2.5 bg-sky-600 hover:bg-sky-500 text-white text-center rounded-xl font-medium transition text-sm">
@@ -293,7 +303,7 @@
         <h2 class="text-base font-semibold text-slate-200">⚙️ Instellingen</h2>
         <div>
           <label class="block text-xs text-slate-400 mb-1">Jouw Naam</label>
-          <input type="text" id="settingsUserName" placeholder="Bijv. Jan" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+          <input type="text" id="settingsUserName" placeholder="Bijv. Bjorn" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
         </div>
         <div>
           <label class="block text-xs text-slate-400 mb-1">Locatie (voor weer)</label>
@@ -305,7 +315,7 @@
 
   </main>
 
-  <!-- Onzichtbare container voor PDF export via html2pdf (Bevat medicatie, klachten tabellen, grafieken én dagboek) -->
+  <!-- Onzichtbare container voor PDF export via html2pdf -->
   <div id="doctorExportContainer" style="display: none; padding: 20px; background: #ffffff; color: #000000; font-family: sans-serif; width: 210mm;">
     <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 5px; color: #0f172a;">MS Vita - Medisch Overzichtsrapport</h1>
     <p style="font-size: 12px; color: #64748b; margin-bottom: 20px;">Gegenereerd op: <span id="pdfExportDate"></span> | Patiënt: <span id="pdfPatientName"></span></p>
@@ -389,6 +399,7 @@
       const dateEl = document.getElementById('symptomDate');
       if (dateEl) dateEl.value = today;
 
+      checkAndPromptName();
       updateDynamicGreeting();
       fetchWeatherAndTheme();
       loadDailyQuote();
@@ -398,6 +409,28 @@
       loadNotes();
       loadSettingsValues();
     });
+
+    function checkAndPromptName() {
+      const name = localStorage.getItem('ms_vita_username');
+      const promptSection = document.getElementById('namePromptSection');
+      if (!name) {
+        if (promptSection) promptSection.classList.remove('hidden');
+      } else {
+        if (promptSection) promptSection.classList.add('hidden');
+      }
+    }
+
+    function saveQuickName() {
+      const inputVal = document.getElementById('quickNameInput').value.trim();
+      if (!inputVal) {
+        alert('Vul alstublieft je naam in.');
+        return;
+      }
+      localStorage.setItem('ms_vita_username', inputVal);
+      checkAndPromptName();
+      updateDynamicGreeting();
+      loadSettingsValues();
+    }
 
     function switchTab(tabName) {
       const tabs = ['dashboard', 'symptoms', 'scanner', 'meds', 'notes', 'settings'];
@@ -425,15 +458,22 @@
     }
 
     function updateDynamicGreeting() {
-      const name = localStorage.getItem('ms_vita_username') || 'Vriend(in)';
+      const name = localStorage.getItem('ms_vita_username');
+      const greetingEl = document.getElementById('dynamicGreeting');
+      if (!greetingEl) return;
+
+      if (!name) {
+        greetingEl.innerText = 'Welkom';
+        return;
+      }
+
       const hour = new Date().getHours();
       let greeting = 'Goedendag';
       if (hour < 12) greeting = 'Goedemorgen';
       else if (hour < 18) greeting = 'Goedemiddag';
       else greeting = 'Goedenavond';
 
-      const greetingEl = document.getElementById('dynamicGreeting');
-      if (greetingEl) greetingEl.innerText = `${greeting}, ${name}`;
+      greetingEl.innerText = `${greeting}, ${name}`;
     }
 
     function loadDailyQuote() {
@@ -444,13 +484,9 @@
       const options = { day: 'numeric', month: 'long', year: 'numeric' };
       if (quoteDateEl) quoteDateEl.innerText = now.toLocaleDateString('nl-BE', options);
 
-      const startOfYear = new Date(now.getFullYear(), 0, 0);
-      const diff = now - startOfYear;
-      const oneDay = 1000 * 60 * 60 * 24;
-      const dayOfYear = Math.floor(diff / oneDay);
-      
-      const quoteIndex = dayOfYear % dailyQuotes.length;
-      if (quoteTextEl) quoteTextEl.innerText = `"${dailyQuotes[quoteIndex]}"`;
+      // Willekeurige quote kiezen bij elk laadmoment
+      const randomIndex = Math.floor(Math.random() * dailyQuotes.length);
+      if (quoteTextEl) quoteTextEl.innerText = `"${dailyQuotes[randomIndex]}"`;
     }
 
     async function fetchWeatherAndTheme() {
@@ -684,7 +720,10 @@
     function saveSettings() {
       const nameInput = document.getElementById('settingsUserName').value.trim();
       const locInput = document.getElementById('settingsLocation').value.trim();
-      if (nameInput) localStorage.setItem('ms_vita_username', nameInput);
+      if (nameInput) {
+        localStorage.setItem('ms_vita_username', nameInput);
+        checkAndPromptName();
+      }
       if (locInput) {
         localStorage.setItem('ms_vita_location', locInput);
       }
@@ -697,7 +736,6 @@
       document.getElementById('pdfPatientName').innerText = localStorage.getItem('ms_vita_username') || 'Patiënt';
       document.getElementById('pdfExportDate').innerText = new Date().toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' });
 
-      // 1. Medicatie in PDF vullen
       let meds = JSON.parse(localStorage.getItem('ms_vita_meds') || '[]');
       const medListEl = document.getElementById('pdfMedList');
       if (meds.length === 0) {
@@ -706,7 +744,6 @@
         medListEl.innerHTML = meds.map(m => `<li>${m}</li>`).join('');
       }
 
-      // 2. Klachten en metingen tabel in PDF vullen
       let symptoms = JSON.parse(localStorage.getItem('ms_vita_symptoms') || '[]');
       const tbody = document.getElementById('pdfSymptomsTableBody');
       if (symptoms.length === 0) {
@@ -724,7 +761,6 @@
         `).join('');
       }
 
-      // 3. Grafieken overzetten naar PDF
       if (fatigueChartInstance && mobilityChartInstance && cognitionChartInstance && painChartInstance) {
         document.getElementById('pdfFatigueChartImg').src = fatigueChartInstance.toBase64Image();
         document.getElementById('pdfMobilityChartImg').src = mobilityChartInstance.toBase64Image();
@@ -732,7 +768,6 @@
         document.getElementById('pdfPainChartImg').src = painChartInstance.toBase64Image();
       }
 
-      // 4. Dagboeknotities in PDF vullen
       const notes = localStorage.getItem('ms_vita_notes') || 'Geen dagboeknotities ingevoerd.';
       document.getElementById('pdfNotesContent').innerText = notes;
 
